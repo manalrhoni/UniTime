@@ -18,8 +18,8 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 
 # Imports internes
 from .database import engine, get_db, Base
-# Utilisation de l'import direct pour éviter les erreurs de noms
-from .models.models import User, Teacher, Room, Group, Course, TimeSlot, Reservation, Unavailability
+# [MODIF] Ajout de GlobalNotification dans l'import pour le Point 3
+from .models.models import User, Teacher, Room, Group, Course, TimeSlot, Reservation, Unavailability, GlobalNotification
 
 from fastapi.responses import FileResponse 
 from fpdf import FPDF 
@@ -104,7 +104,7 @@ class SeanceDisplay(BaseModel):
 class ReservationCreate(BaseModel):
     teacher_id: int
     room_id: Optional[int] = None
-    #Pour notifier le bon groupe/module
+    # [MODIF] Ajout des champs pour le contexte (Points 4 & 7)
     course_id: Optional[int] = None
     group_id: Optional[str] = None
     reason: str
@@ -119,6 +119,13 @@ class UnavailabilityCreate(BaseModel):
     teacher_id: int
     date: str
     reason: str
+
+# [NOUVEAU] Schéma pour les notifications globales (Point 3)
+class NotificationCreate(BaseModel):
+    title: str
+    message: str
+    type: str
+    target_role: str
 
 # =====================================================================
 # ENDPOINTS AUTHENTIFICATION & EMAIL
@@ -143,7 +150,9 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             "role": user.role,
             "is_active": user.is_active,
             "department_id": user.department_id,
-            "group_id": user.group_id
+            "group_id": user.group_id,
+            # [MODIF] On renvoie le semestre pour l'affichage étudiant (Point 6)
+            "semester": user.semester 
         }
     }
 
@@ -336,6 +345,29 @@ def get_teacher_timetable(teacher_id: int, db: Session = Depends(get_db)):
     return results
 
 # =====================================================================
+# [NOUVEAU] GESTION DES NOTIFICATIONS GLOBALES (Point 3)
+# =====================================================================
+@app.post("/notifications/")
+def create_notification(notif: NotificationCreate, db: Session = Depends(get_db)):
+    new_notif = GlobalNotification(
+        title=notif.title,
+        message=notif.message,
+        type=notif.type,
+        target_role=notif.target_role,
+        created_at=datetime.now()
+    )
+    db.add(new_notif)
+    db.commit()
+    return new_notif
+
+@app.get("/notifications/")
+def get_notifications(role: str = "all", db: Session = Depends(get_db)):
+    # On récupère les notifs destinées à "all" OU au rôle spécifique
+    return db.query(GlobalNotification).filter(
+        or_(GlobalNotification.target_role == "all", GlobalNotification.target_role == role)
+    ).order_by(GlobalNotification.created_at.desc()).all()
+
+# =====================================================================
 # FONCTIONNALITÉS PROFESSEUR
 # =====================================================================
 
@@ -368,7 +400,7 @@ def create_reservation(res: ReservationCreate, db: Session = Depends(get_db)):
     new_res = Reservation(
         teacher_id=res.teacher_id,
         room_id=res.room_id,
-        #Lien avec le module et le groupe
+        # [MODIF] Enregistrement des champs contextuels (Point 4 & 7)
         course_id=res.course_id,
         group_id=res.group_id,
         reason=res.reason,
@@ -599,6 +631,7 @@ def get_stats(db: Session = Depends(get_db)):
 def get_reservations(db: Session = Depends(get_db)):
     return db.query(Reservation).all()
 
+# [MODIF] VALIDATION INTELLIGENTE AVEC CRÉATION DE CRÉNEAU (Point 2 & 5)
 @app.put("/reservations/{reservation_id}")
 def update_reservation_status(reservation_id: int, status_update: ReservationStatusUpdate, db: Session = Depends(get_db)):
     reservation = db.query(Reservation).filter(Reservation.id == reservation_id).first()
@@ -607,6 +640,26 @@ def update_reservation_status(reservation_id: int, status_update: ReservationSta
     
     reservation.status = status_update.status
     db.commit()
+
+    # Si c'est validé, on CRÉE le créneau dans l'emploi du temps !
+    if status_update.status == "approved" and reservation.room_id and reservation.group_id:
+        days_map = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+        day_name = days_map[reservation.date.weekday()]
+        
+        new_slot = TimeSlot(
+            course_id=reservation.course_id or 1, # Fallback si pas de module
+            teacher_id=reservation.teacher_id,
+            room_id=reservation.room_id,
+            group_id=reservation.group_id,
+            day=day_name,
+            start_time=reservation.start_time,
+            end_time=reservation.end_time,
+            type="Rattrapage"
+        )
+        db.add(new_slot)
+        db.commit()
+        return {"message": "Réservation validée et créneau ajouté à l'emploi du temps !"}
+
     return {"message": f"Statut mis à jour : {status_update.status}"}
 
 
@@ -658,7 +711,7 @@ def seed_data():
     finally:
         db.close()
 
-# =# =====================================================================
+# =====================================================================
 # GÉNÉRATION PDF (PLEINE LARGEUR & TEXTE NEUTRE)
 # =====================================================================
 

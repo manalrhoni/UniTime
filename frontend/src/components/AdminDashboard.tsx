@@ -29,7 +29,9 @@ import {
   X,
   UserCheck,
   BookOpen, 
-  Image as ImageIcon 
+  Image as ImageIcon,
+  Bell,
+  Search // Utilisé pour l'onglet Recherche
 } from 'lucide-react';
 
 // Import de la librairie de capture
@@ -56,6 +58,8 @@ const normalizeTime = (time: string) => {
   if (time.startsWith('16')) return '16:15';
   return time;
 };
+
+const daysList = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
 
 export function AdminDashboard() {
   // --- ÉTATS ---
@@ -90,6 +94,18 @@ export function AdminDashboard() {
     teachers_count: 0,
     courses_count: 0
   });
+
+  // États pour les Notifications Globales
+  const [notifTitle, setNotifTitle] = useState("");
+  const [notifMsg, setNotifMsg] = useState("");
+  const [notifTarget, setNotifTarget] = useState("all");
+
+  // [NOUVEAU] États pour la Recherche de Salles
+  const [searchDay, setSearchDay] = useState("0");
+  const [searchStart, setSearchStart] = useState("08:00");
+  const [searchEnd, setSearchEnd] = useState("10:00");
+  const [searchCapacity, setSearchCapacity] = useState("0");
+  const [availableRooms, setAvailableRooms] = useState<any[]>([]);
 
   // --- LOGIQUE DE DÉCONNEXION ---
   const handleLogout = () => {
@@ -162,7 +178,6 @@ export function AdminDashboard() {
           teacherId: r.teacher_id.toString(),
           roomId: r.room_id ? r.room_id.toString() : null,
           roomName: r.room_name,
-          // Nouveaux champs pour notifications
           courseId: r.course_id,
           groupId: r.group_id,
           date: r.date,
@@ -267,7 +282,7 @@ export function AdminDashboard() {
     const a = document.createElement('a'); a.href = url; a.download = 'emploi-du-temps.csv'; a.click();
   };
 
-  // FONCTION D'EXPORT IMAGE (Ajoutée ici)
+  // FONCTION D'EXPORT IMAGE
   const handleExportImage = async () => {
     const element = document.getElementById('printable-timetable');
     if (!element) {
@@ -304,7 +319,51 @@ export function AdminDashboard() {
     window.open(`http://localhost:8000/export-pdf/${selectedGroupId}`, '_blank');
   };
 
-  // --- LOGIQUE CRUD (Avec les champs manquants ajoutés) ---
+  // Fonction pour envoyer une notification globale
+  const sendGlobalNotification = async () => {
+    if(!notifTitle || !notifMsg) {
+        toast.error("Veuillez remplir le titre et le message");
+        return;
+    }
+    try {
+        await fetch('http://localhost:8000/notifications/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                title: notifTitle,
+                message: notifMsg,
+                type: 'info',
+                target_role: notifTarget
+            })
+        });
+        toast.success("Notification envoyée à tous !");
+        setNotifTitle(""); 
+        setNotifMsg("");
+    } catch (e) {
+        toast.error("Erreur lors de l'envoi");
+    }
+  };
+
+  // [NOUVEAU] Logique Recherche Salles
+  const handleSearchRooms = async () => {
+    const dayName = daysList[parseInt(searchDay)];
+    try {
+        const url = `http://localhost:8000/rooms/search/?day=${dayName}&start_time=${searchStart}&end_time=${searchEnd}&capacity=${searchCapacity}`;
+        const res = await fetch(url);
+        if(res.ok) {
+            const data = await res.json();
+            setAvailableRooms(data);
+            if(data.length === 0) toast.info("Aucune salle libre trouvée pour ce créneau.");
+            else toast.success(`${data.length} salle(s) trouvée(s).`);
+        } else {
+            toast.error("Erreur lors de la recherche.");
+        }
+    } catch(e) {
+        toast.error("Erreur de connexion serveur.");
+    }
+  };
+
+  // --- LOGIQUE CRUD ---
   const openModal = (type: any, entity: any = null) => {
     setModalType(type);
     // Initialisation complète
@@ -344,7 +403,7 @@ export function AdminDashboard() {
             id: currentEntity.id,
             name: currentEntity.name,
             // On s'assure d'envoyer un nombre ou null (pas une chaine vide)
-            group_id: currentEntity.group_id ? parseInt(currentEntity.group_id) : null,
+            group_id: currentEntity.group_id ? currentEntity.group_id : null,
             teacher_id: currentEntity.teacher_id ? parseInt(currentEntity.teacher_id) : null,
             hours_cours: parseInt(currentEntity.hours_cours || 0),
             hours_td: parseInt(currentEntity.hours_td || 0),
@@ -383,13 +442,11 @@ export function AdminDashboard() {
     } catch (e) { toast.error("Erreur de connexion"); }
   };
 
-  // Petit helper pour afficher le nom du groupe dans la liste des modules
   const getGroupName = (id: any) => {
       const g = listGroups.find((grp: any) => grp.id === id);
       return g ? g.name : "Non assigné";
   };
 
-  // Petit helper pour afficher le nom du prof dans la liste des modules (AJOUTÉ)
   const getTeacherName = (id: any) => {
       const t = listTeachers.find((tch: any) => tch.id === id);
       return t ? t.name : "Non assigné";
@@ -401,13 +458,11 @@ export function AdminDashboard() {
       {/* --- MODALE CRUD --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          {/* GRANDE BOITE : max-w-2xl pour que rien ne soit coupé */}
           <Card className="w-full max-w-2xl bg-slate-900 border-slate-700 shadow-2xl overflow-visible">
             <CardHeader className="flex flex-row items-center justify-between border-b border-slate-800 pb-4">
               <CardTitle className="text-white text-xl">
                 {currentEntity.id ? 'Modifier' : 'Ajouter'} {modalType === 'module' ? 'Module' : modalType}
               </CardTitle>
-              {/* BOUTON FERMER : Carré parfait (h-10 w-10) */}
               <Button 
                 variant="ghost" 
                 size="icon" 
@@ -425,7 +480,7 @@ export function AdminDashboard() {
               </div>
               
               {modalType === 'teacher' && (
-                 <>
+                  <>
                     <div className="space-y-2">
                         <Label className="text-slate-300">Email</Label>
                         <Input value={currentEntity.email} onChange={(e) => setCurrentEntity({...currentEntity, email: e.target.value})} className="bg-slate-800 border-slate-600 text-white h-11" />
@@ -434,7 +489,7 @@ export function AdminDashboard() {
                         <Label className="text-slate-300">Département</Label>
                         <Input value={currentEntity.department} onChange={(e) => setCurrentEntity({...currentEntity, department: e.target.value})} className="bg-slate-800 border-slate-600 text-white h-11" />
                     </div>
-                 </>
+                  </>
               )}
 
               {modalType === 'room' && (
@@ -496,7 +551,6 @@ export function AdminDashboard() {
                   </>
               )}
 
-              {/* BOUTONS ACTIONS : flex-row permanent pour garantir l'affichage */}
               <div className="flex flex-row gap-4 pt-8 mt-4 border-t border-slate-800">
                 <Button onClick={handleSaveEntity} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12">
                   <Save className="mr-2 h-5 w-5" /> Sauvegarder
@@ -706,6 +760,9 @@ export function AdminDashboard() {
             <TabsTrigger value="users">Utilisateurs ({pendingUsers.length})</TabsTrigger>
             <TabsTrigger value="requests">Demandes ({roomRequests.length})</TabsTrigger>
             <TabsTrigger value="stats">Statistiques d'occupation</TabsTrigger>
+            {/* [MODIF] Ajout de l'onglet Notifications et Salles Libres */}
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="rooms">Salles Libres</TabsTrigger>
           </TabsList>
 
           <TabsContent value="timetable" className="space-y-4">
@@ -888,6 +945,119 @@ export function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Contenu de l'onglet Notifications (Point 3) */}
+          <TabsContent value="notifications">
+            <Card className="bg-slate-900 border-slate-700">
+                <CardHeader><CardTitle>Envoyer une alerte (Panne, Férié...)</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label className="text-slate-300">Titre de l'alerte</Label>
+                        <Input 
+                            placeholder="Ex: Panne Électricité - Salle 12" 
+                            value={notifTitle} 
+                            onChange={e => setNotifTitle(e.target.value)} 
+                            className="bg-slate-800 border-slate-600 text-white"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-slate-300">Message détaillé</Label>
+                        <Input 
+                            placeholder="Le cours est déplacé en Amphi B..." 
+                            value={notifMsg} 
+                            onChange={e => setNotifMsg(e.target.value)} 
+                            className="bg-slate-800 border-slate-600 text-white"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-slate-300">Destinataires</Label>
+                        <Select onValueChange={setNotifTarget} defaultValue="all">
+                            <SelectTrigger className="bg-slate-800 border-slate-600 text-white"><SelectValue placeholder="Cible" /></SelectTrigger>
+                            <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                                <SelectItem value="all">Tout le monde</SelectItem>
+                                <SelectItem value="student">Étudiants seulement</SelectItem>
+                                <SelectItem value="teacher">Profs seulement</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <Button onClick={sendGlobalNotification} className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-lg">
+                        <Bell className="w-5 h-5 mr-2" /> Envoyer Notification Immédiate
+                    </Button>
+                </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* [NOUVEAU] Contenu de l'onglet Salles Libres */}
+          <TabsContent value="rooms">
+            <Card className="bg-slate-900 border-slate-700">
+                <CardHeader><CardTitle>Rechercher une salle libre</CardTitle></CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="space-y-2">
+                            <Label className="text-slate-300">Jour</Label>
+                            <Select value={searchDay} onValueChange={setSearchDay}>
+                                <SelectTrigger className="bg-slate-800 border-slate-600 text-white"><SelectValue placeholder="Jour" /></SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                                    {daysList.map((day, i) => <SelectItem key={i} value={i.toString()}>{day}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-300">Début</Label>
+                            <Select value={searchStart} onValueChange={setSearchStart}>
+                                <SelectTrigger className="bg-slate-800 border-slate-600 text-white"><SelectValue /></SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                                    <SelectItem value="08:00">08:00</SelectItem>
+                                    <SelectItem value="10:15">10:15</SelectItem>
+                                    <SelectItem value="14:00">14:00</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-300">Fin</Label>
+                            <Select value={searchEnd} onValueChange={setSearchEnd}>
+                                <SelectTrigger className="bg-slate-800 border-slate-600 text-white"><SelectValue /></SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                                    <SelectItem value="10:00">10:00</SelectItem>
+                                    <SelectItem value="12:15">12:15</SelectItem>
+                                    <SelectItem value="16:00">16:00</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-300">Capacité Min.</Label>
+                            <Input 
+                                type="number" 
+                                value={searchCapacity} 
+                                onChange={e => setSearchCapacity(e.target.value)} 
+                                className="bg-slate-800 border-slate-600 text-white"
+                            />
+                        </div>
+                    </div>
+                    
+                    <Button onClick={handleSearchRooms} className="w-full bg-indigo-600 hover:bg-indigo-700 h-11">
+                        <Search className="w-4 h-4 mr-2" /> Rechercher Salles Disponibles
+                    </Button>
+
+                    {availableRooms.length > 0 && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                            {availableRooms.map(room => (
+                                <div key={room.id} className="p-4 border border-slate-700 rounded bg-slate-800/50 flex justify-between items-center">
+                                    <div>
+                                        <h3 className="font-bold text-white">{room.name}</h3>
+                                        <p className="text-xs text-slate-400">{room.capacity} places - {room.type}</p>
+                                    </div>
+                                    <div className="text-xs px-2 py-1 bg-green-500/20 text-green-400 rounded">
+                                        Libre
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
       )}
     </div>

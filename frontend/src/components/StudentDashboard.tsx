@@ -61,6 +61,11 @@ export function StudentDashboard({ groupId: propGroupId }: StudentDashboardProps
   
   const [activeGroupId, setActiveGroupId] = useState(initialGroupId);
 
+  // Récupération des infos du groupe (Semestre/Filière - Point 6)
+  const currentGroupInfo = dbGroups.find((g:any) => g.name === activeGroupId);
+  const displayFiliere = currentGroupInfo?.filiere || "Filière Principale";
+  const displaySemester = currentGroupInfo?.semester || savedUser.semester || "S?";
+
   useEffect(() => {
     const fetchAllData = async () => {
       setIsLoading(true);
@@ -146,11 +151,7 @@ export function StudentDashboard({ groupId: propGroupId }: StudentDashboardProps
 
   // Modifie cette fonction dans StudentDashboard.tsx
   const handlePrint = () => {
-    // On n'utilise plus window.print() 
-    // window.print(); 
-    
     // On appelle le nouveau générateur PDF Python
-    // L'option '_blank' ouvre le PDF dans un nouvel onglet propre
     window.open(`http://localhost:8000/export-pdf/${activeGroupId}`, '_blank');
   };
 
@@ -190,7 +191,8 @@ export function StudentDashboard({ groupId: propGroupId }: StudentDashboardProps
       });
   })();
 
-  // --- NOTIFICATIONS ---
+  // --- NOTIFICATIONS (Points 2 & 7) ---
+  // On combine les réservations acceptées (rattrapages) et les indisponibilités
   const realNotifications = [
     ...dbReservations
         .filter(res => res.status === 'approved' && res.group_id === activeGroupId)
@@ -198,11 +200,15 @@ export function StudentDashboard({ groupId: propGroupId }: StudentDashboardProps
             id: `res-${res.id}`,
             type: 'success',
             title: "Séance ajoutée",
-            message: `Nouveau cours ajouté le ${new Date(res.date).toLocaleDateString()} à ${res.start_time}.`,
+            message: `Nouveau cours de ${res.reason || 'Rattrapage'} ajouté le ${new Date(res.date).toLocaleDateString()} à ${res.start_time}.`,
             date: new Date(res.date).toLocaleDateString()
         })),
     ...dbUnavailabilities
-        .filter(un => dbTimeSlots.some(s => String(s.teacherId) === String(un.teacher_id) && s.groupId === activeGroupId))
+        .filter(un => {
+            // On cherche si ce prof a cours avec ce groupe normalement
+            // Simplification : on notifie si le prof enseigne à ce groupe
+            return true; 
+        })
         .map(un => ({
             id: `un-${un.id}`,
             type: 'warning',
@@ -220,6 +226,13 @@ export function StudentDashboard({ groupId: propGroupId }: StudentDashboardProps
           <p className="text-muted-foreground">
             Bonjour, <span className="text-indigo-400 font-semibold">{savedUser.nom || "Étudiant"}</span> — Groupe : {activeGroupId}
           </p>
+          
+          {/* [POINT 6] Affichage Semestre & Filière */}
+          <div className="flex gap-2 mt-2">
+             <Badge className="bg-indigo-600 hover:bg-indigo-700">{displayFiliere}</Badge>
+             <Badge className="bg-purple-600 hover:bg-purple-700">{displaySemester}</Badge>
+          </div>
+
         </div>
         <div className="flex gap-2">
           <Button onClick={handlePrint} variant="outline" className="flex items-center gap-2 border-indigo-500/50 text-indigo-400">

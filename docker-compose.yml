@@ -15,7 +15,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  # --- Backend FastAPI ---
+ # --- Backend FastAPI ---
   backend:
     build: ./backend
     container_name: unitime_backend
@@ -24,9 +24,11 @@ services:
       - db
     ports:
       - "8000:8000"
+    # AJOUTE CECI POUR CHARGER TON FICHIER .ENV :
+    env_file:         # <--- LIGNE À AJOUTER
+      - ./backend/.env          # <--- LIGNE À AJOUTER
     environment:
       DATABASE_URL: postgresql://unitime_user:unitime_password@db:5432/unitime_db
-      # URL spéciale pour accéder à Ollama sur votre Windows hôte
       OLLAMA_URL: http://host.docker.internal:11434
     volumes:
       - ./backend/app:/app/app

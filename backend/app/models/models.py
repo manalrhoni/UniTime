@@ -13,6 +13,7 @@ class User(Base):
     role = Column(String)  # 'admin', 'enseignant', 'student'
     department_id = Column(String, nullable=True)
     group_id = Column(String, nullable=True)
+    semester = Column(String, nullable=True)
     is_active = Column(Boolean, default=False)
 
 # 2. Modèle Enseignant
@@ -36,14 +37,20 @@ class Room(Base):
     capacity = Column(Integer)
     type = Column(String, default="Standard") # "Standard", "Amphi", "Labo Info"
     equipment = Column(String, default="")
+    
     time_slots = relationship("TimeSlot", back_populates="room")
+    # Relation pour voir les réservations liées à cette salle
+    reservations = relationship("Reservation", back_populates="room")
 
 # 4. Modèle Groupe
 class Group(Base):
     __tablename__ = "groups"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, index=True) 
     name = Column(String, unique=True)
     student_count = Column(Integer, default=30)
+    filiere = Column(String, nullable=True) # Ex: "LST AD"
+    semester = Column(String, nullable=True) # Ex: "S5"
+
     courses = relationship("Course", back_populates="group")
 
 # 5. Modèle Cours/Module
@@ -53,7 +60,8 @@ class Course(Base):
     name = Column(String)
     code = Column(String, unique=True)
     
-    group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
+    # [MODIF] String pour matcher Group.id
+    group_id = Column(String, ForeignKey("groups.id"), nullable=True)
     teacher_id = Column(Integer, ForeignKey("teachers.id"), nullable=True)
 
     hours_cours = Column(Integer, default=0)
@@ -63,6 +71,7 @@ class Course(Base):
     group = relationship("Group", back_populates="courses")
     time_slots = relationship("TimeSlot", back_populates="course")
     teacher = relationship("Teacher", back_populates="courses")
+    reservations = relationship("Reservation", back_populates="course")
 
 # 6. Modèle Créneau (TimeSlot)
 class TimeSlot(Base):
@@ -71,12 +80,12 @@ class TimeSlot(Base):
     course_id = Column(Integer, ForeignKey("courses.id"))
     teacher_id = Column(Integer, ForeignKey("teachers.id"))
     room_id = Column(Integer, ForeignKey("rooms.id"))
-    group_id = Column(String)
+    group_id = Column(String) # Cohérent avec Group.id
     
     day = Column(String)
     start_time = Column(String)
     end_time = Column(String)
-    type = Column(String) # "Cours", "TD", "TP"
+    type = Column(String) # "Cours", "TD", "TP", "Rattrapage"
 
     course = relationship("Course", back_populates="time_slots")
     teacher = relationship("Teacher", back_populates="time_slots")
@@ -101,8 +110,8 @@ class Reservation(Base):
     status = Column(String, default="pending") 
     
     teacher = relationship("Teacher", back_populates="reservations")
-    room = relationship("Room")
-    course = relationship("Course") # Ajout du lien vers le module
+    room = relationship("Room", back_populates="reservations")
+    course = relationship("Course", back_populates="reservations")
 
 # 8. Modèle Indisponibilité (pour les absences ponctuelles)
 class Unavailability(Base):
@@ -112,11 +121,18 @@ class Unavailability(Base):
     
     # --- POUR NOTIFIER LES ÉTUDIANTS À UNE DATE PRÉCISE ---
     date = Column(DateTime, nullable=True) 
-    # ------------------------------------------------------------
-
     day = Column(String)
     start_time = Column(String)
     end_time = Column(String)
     reason = Column(String, nullable=True)
     
     teacher = relationship("Teacher", back_populates="unavailabilities")
+
+class GlobalNotification(Base):
+    __tablename__ = "global_notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String)
+    message = Column(String)
+    type = Column(String) # 'info', 'warning', 'alert'
+    target_role = Column(String) # 'all', 'student', 'teacher'
+    created_at = Column(DateTime, default=datetime.now)

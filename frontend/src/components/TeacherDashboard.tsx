@@ -7,7 +7,7 @@ import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { TimetableGrid } from './TimetableGrid';
-import { Calendar, Search, Plus, Clock, Printer, History, CheckCircle, XCircle, Clock as ClockIcon, AlertTriangle, LogOut, BookOpen, Users, Bell } from 'lucide-react';
+import { Calendar, Search, Plus, Clock, Printer, History, CheckCircle, XCircle, Clock as ClockIcon, AlertTriangle, LogOut, BookOpen, Users, Bell, MapPin } from 'lucide-react';
 import {
   rooms,
   courses as mockCourses,
@@ -31,6 +31,8 @@ const daysMap: { [key: string]: number } = {
   "Lundi": 0, "Mardi": 1, "Mercredi": 2, "Jeudi": 3, "Vendredi": 4
 };
 
+const daysList = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
+
 export function TeacherDashboard({ teacherId }: TeacherDashboardProps) {
   // --- ÉTATS ---
   const [dbTimeSlots, setDbTimeSlots] = useState<any[]>([]);
@@ -42,6 +44,7 @@ export function TeacherDashboard({ teacherId }: TeacherDashboardProps) {
   
   const [currentTeacher, setCurrentTeacher] = useState<any>(null);
   const [myRequests, setMyRequests] = useState<any[]>([]);
+  const [globalNotifs, setGlobalNotifs] = useState<any[]>([]); // [POINT 3]
 
   const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -83,7 +86,8 @@ export function TeacherDashboard({ teacherId }: TeacherDashboardProps) {
                         fetchMyRequests(found.id),
                         fetchRooms(),  
                         fetchTeachers(),  
-                        fetchGroups()  
+                        fetchGroups(),
+                        fetchGlobalNotifications() // [POINT 3] Charger les notifs admin
                     ]);
                 } else {
                     toast.error("Profil enseignant introuvable pour cet email.");
@@ -205,16 +209,25 @@ export function TeacherDashboard({ teacherId }: TeacherDashboardProps) {
     }
   };
 
+  // 8. CHARGER NOTIFS GLOBALES (Admin) [POINT 3]
+  const fetchGlobalNotifications = async () => {
+      try {
+          const res = await fetch('http://localhost:8000/notifications/?role=teacher');
+          if (res.ok) setGlobalNotifs(await res.json());
+      } catch (e) { console.error("Erreur Notifs:", e); }
+  };
+
   const displayName = currentTeacher?.name || savedUser.nom || "Enseignant";
   const displayDept = currentTeacher?.department || "Département";
 
   // --- ÉTATS UI (Inchangés) ---
+  const [activeTab, setActiveTab] = useState("schedule"); // Pour basculer d'onglet
   const [searchDay, setSearchDay] = useState('0');
   const [searchStartTime, setSearchStartTime] = useState('08:00');
   const [searchEndTime, setSearchEndTime] = useState('10:00');
   const [searchCapacity, setSearchCapacity] = useState('');
   const [searchEquipment, setSearchEquipment] = useState('');
-  const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
+  const [availableRooms, setAvailableRooms] = useState<any[]>([]); // Changé Room[] en any[] pour compatibilité
 
   const [requestDate, setRequestDate] = useState('');
   const [requestStartTime, setRequestStartTime] = useState('08:00');
@@ -224,24 +237,37 @@ export function TeacherDashboard({ teacherId }: TeacherDashboardProps) {
   const [requestEquipment, setRequestEquipment] = useState('');
   // État pour le module lors de la réservation
   const [requestCourseId, setRequestCourseId] = useState('');
+  
+  // [POINT 5] Stocker la salle trouvée via la recherche
+  const [preSelectedRoomId, setPreSelectedRoomId] = useState<number | null>(null);
 
   const [unavailDate, setUnavailDate] = useState('');
   const [unavailReason, setUnavailReason] = useState('');
 
   const days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
 
-  // --- LOGIQUE NOTIFICATIONS ---
-  const notifications = myRequests
-    .filter(req => req.status !== 'pending')
-    .filter(req => !dismissedNotifs.includes(String(req.id))) // 🔥 Filtre les lues
-    .slice(0, 3)
-    .map(req => ({
-        id: req.id,
-        title: req.status === 'approved' ? 'Demande Validée' : 'Demande Refusée',
-        message: `Votre demande pour le ${req.date ? req.date.split('T')[0] : 'date inconnue'} a été ${req.status === 'approved' ? 'acceptée' : 'rejetée'}.`,
-        type: req.status === 'approved' ? 'success' : 'error', // 'error' sera stylisé en rouge/orange
-        date: new Date().toLocaleDateString() // Ajout de la date pour le design
-    }));
+  // --- LOGIQUE NOTIFICATIONS (COMBINÉE) [POINT 2 & 3] ---
+  const notifications = [
+    // 1. Alertes Globales (Admin)
+    ...globalNotifs.map(n => ({
+        id: `glob-${n.id}`,
+        title: n.title,
+        message: n.message,
+        type: n.type === 'alert' ? 'error' : 'info', // Mapping types sonner
+        date: new Date(n.created_at).toLocaleDateString()
+    })),
+    // 2. Réponses aux demandes (Rattrapage accepté/refusé)
+    ...myRequests
+        .filter(req => req.status !== 'pending')
+        .map(req => ({
+            id: `req-${req.id}`,
+            title: req.status === 'approved' ? 'Demande Validée' : 'Demande Refusée',
+            message: `Votre demande pour le ${req.date ? req.date.split('T')[0] : 'date inconnue'} a été ${req.status === 'approved' ? 'acceptée' : 'rejetée'}.`,
+            type: req.status === 'approved' ? 'success' : 'error',
+            date: new Date().toLocaleDateString()
+        }))
+  ].filter(n => !dismissedNotifs.includes(n.id))
+   .slice(0, 4); // Limiter à 4 notifs
 
   const handlePrint = () => {
     // Vérification de sécurité
@@ -259,7 +285,7 @@ export function TeacherDashboard({ teacherId }: TeacherDashboardProps) {
   };
 
   const handleSearchRooms = async () => {
-    const dayName = days[parseInt(searchDay)];
+    const dayName = daysList[parseInt(searchDay)];
     const params = new URLSearchParams({
         day: dayName,          
         start_time: searchStartTime, 
@@ -285,6 +311,16 @@ export function TeacherDashboard({ teacherId }: TeacherDashboardProps) {
     }
   };
 
+  // [POINT 5] Action "Réserver cette salle" depuis la recherche
+  const handleBookRoom = (room: any) => {
+      setPreSelectedRoomId(room.id);
+      setActiveTab('request'); // Basculer automatiquement vers l'onglet Demande
+      // Pré-remplir les horaires
+      setRequestStartTime(searchStartTime);
+      setRequestEndTime(searchEndTime);
+      toast.success(`Salle ${room.name} sélectionnée. Complétez le motif.`);
+  };
+
 const handleSubmitRequest = async () => {
     // 1. Vérification des champs
     if (!requestDate || !requestReason || !requestCapacity || !requestCourseId) {
@@ -297,24 +333,26 @@ const handleSubmitRequest = async () => {
         return;
     }
 
-    // 2. Trouver le module pour récupérer la filière (groupId)
+    // 2. Trouver le module pour récupérer la filière (groupId) [POINT 4 & 7]
     const selectedCourse = dbCourses.find(c => String(c.id) === String(requestCourseId));
+    // Fallback si pas de groupe
+    const targetGroupId = selectedCourse?.group_id || "G1"; 
 
     // 3. Préparation du Payload 
     const payload = {
-      teacher_id: parseInt(currentTeacher.id), // Forcer en entier
-      course_id: parseInt(requestCourseId),   // Forcer en entier
-      room_id: null,                          // L'admin choisira la salle plus tard
-      group_id: String(selectedCourse?.group_id || "AD"), // S'assurer que c'est un String
+      teacher_id: parseInt(currentTeacher.id), 
+      course_id: parseInt(requestCourseId),   
+      // [POINT 5] On envoie la salle si elle a été choisie
+      room_id: preSelectedRoomId ? preSelectedRoomId : null, 
+      group_id: String(targetGroupId), // La filière est envoyée ici
       reason: requestReason,
-      // On s'assure que la date est au format ISO YYYY-MM-DD
       date: new Date(requestDate).toISOString(), 
       start_time: requestStartTime,
       end_time: requestEndTime
     };
 
     try {
-      console.log("Envoi de la réservation :", payload); // Pour debugger dans la console
+      console.log("Envoi de la réservation :", payload);
 
       const response = await fetch('http://127.0.0.1:8000/reservations/', {
         method: 'POST',
@@ -332,6 +370,7 @@ const handleSubmitRequest = async () => {
         setRequestReason('');
         setRequestCapacity('');
         setRequestCourseId('');
+        setPreSelectedRoomId(null);
         // Rafraîchir la liste
         fetchMyRequests(currentTeacher.id);
       } else {
@@ -479,7 +518,7 @@ const handleSubmitRequest = async () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="schedule" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="print:hidden">
           <TabsTrigger value="schedule">Mon Emploi du Temps</TabsTrigger>
           <TabsTrigger value="search">Rechercher une Salle</TabsTrigger>
@@ -561,7 +600,7 @@ const handleSubmitRequest = async () => {
                   <Select value={searchDay} onValueChange={setSearchDay}>
                     <SelectTrigger id="search-day"><SelectValue /></SelectTrigger>
                     <SelectContent className="bg-slate-950 border-slate-700 text-white z-50">
-                      {days.map((day, index) => (
+                      {daysList.map((day, index) => (
                         <SelectItem key={index} value={index.toString()}>{day}</SelectItem>
                       ))}
                     </SelectContent>
@@ -614,9 +653,15 @@ const handleSubmitRequest = async () => {
                   <h3 className="text-sm font-bold text-blue-400">Salles disponibles ({availableRooms.length})</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {availableRooms.map(room => (
-                      <div key={room.id} className="p-3 border rounded-lg bg-blue-50/10 border-blue-500/30">
-                        <div className="font-bold text-white">{room.name} (Cap: {room.capacity})</div>
-                        <div className="text-sm text-muted-foreground">{room.type}</div>
+                      <div key={room.id} className="p-3 border rounded-lg bg-blue-50/10 border-blue-500/30 flex justify-between items-center">
+                        <div>
+                            <div className="font-bold text-white">{room.name}</div>
+                            <div className="text-xs text-muted-foreground">{room.type} ({room.capacity} pl.)</div>
+                        </div>
+                        {/* [POINT 5] Bouton pour réserver la salle trouvée */}
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleBookRoom(room)}>
+                            <Plus className="w-4 h-4 mr-1" /> Réserver
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -634,6 +679,14 @@ const handleSubmitRequest = async () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              
+              {/* Message si une salle a été pré-sélectionnée depuis la recherche */}
+              {preSelectedRoomId && (
+                  <div className="bg-green-900/30 border border-green-500 p-3 rounded text-green-300 flex items-center gap-2">
+                      <MapPin className="h-4 w-4" /> Salle sélectionnée automatiquement (ID: {preSelectedRoomId})
+                  </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="request-date">Date *</Label>

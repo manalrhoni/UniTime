@@ -91,7 +91,7 @@ export function NeonAssistant() {
         };
     }, []);
 
-    // --- LOGIQUE D'ENVOI CONTEXTUELLE ---
+    // --- LOGIQUE D'ENVOI CONTEXTUELLE (CORRIGÉE) ---
     const handleSendMessage = async (textToSend?: string) => {
         const messageText = textToSend || input;
         if (!messageText.trim()) return;
@@ -102,9 +102,23 @@ export function NeonAssistant() {
         setMessages(prev => [...prev, userMsg]);
         setInput("");
         
+        // --- VÉRIFICATION DE L'UTILISATEUR ---
+        // On récupère le user, mais on vérifie s'il est valide (a un email)
+        // Sinon, on envoie 'null' pour que l'IA sache que c'est un visiteur
+        const storedUser = localStorage.getItem('user');
+        let validUser = null;
+        try {
+            const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+            if (parsedUser && parsedUser.email) {
+                validUser = parsedUser;
+            }
+        } catch (e) {
+            console.error("Erreur parsing user", e);
+        }
+
         let contextData = { 
-            currentPage: location.pathname, // TRANSMISSION DE LA PAGE ACTUELLE
-            user: JSON.parse(localStorage.getItem('user') || '{}'),
+            currentPage: location.pathname,
+            user: validUser, // Utilise l'utilisateur validé ou null
             stats: {}, 
             teachers: [], 
             rooms: [], 
@@ -121,7 +135,8 @@ export function NeonAssistant() {
             const teachers = tRes.ok ? await tRes.json() : [];
             if (ttRes.ok) contextData.timetable = await ttRes.json();
 
-            if (contextData.user.email) {
+            // Si l'utilisateur est valide, on enrichit ses infos
+            if (contextData.user && contextData.user.email) {
                 const realT = teachers.find((t:any) => t.email.toLowerCase() === contextData.user.email.toLowerCase());
                 if (realT) contextData.user = { ...contextData.user, nom: realT.name, id: realT.id };
             }
