@@ -1,0 +1,302 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700;800&display=swap");
+
+/* --- Login.css --- */
+.login-page-container * { margin: 0; padding: 0; box-sizing: border-box; }
+.login-page-container { font-family: "Poppins", sans-serif; }
+
+/* .container devient .login-content */
+.login-content {
+    position: relative;
+    width: 100%;
+    background-color: #1f1b2e;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.forms-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+.signin-signup {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    left: 75%;
+    width: 50%;
+    transition: 1s 0.7s ease-in-out;
+    display: grid;
+    grid-template-columns: 1fr;
+    z-index: 5;
+}
+
+form {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 0rem 5rem;
+    transition: all 0.2s 0.7s;
+    overflow: hidden;
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+}
+
+form.sign-up-form { opacity: 0; z-index: 1; }
+form.sign-in-form { z-index: 2; }
+
+.title { font-size: 2.2rem; color: #f0e6ff; margin-bottom: 20px; }
+
+/* --- SÉLECTEUR DE RÔLE --- */
+.role-selector {
+    display: flex;
+    background-color: #2a2343;
+    border-radius: 55px;
+    margin-bottom: 25px;
+    padding: 5px;
+    width: 100%;
+    max-width: 380px;
+    position: relative;
+    isolation: isolate; 
+}
+
+.role-btn {
+    flex: 1;
+    padding: 12px 0;
+    cursor: pointer;
+    font-weight: 500;
+    color: #b8a5d1;
+    transition: color 0.4s ease;
+    border-radius: 55px;
+    font-size: 0.85rem;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.role-btn.active { color: #ffffff; }
+
+/* La bulle violette mobile */
+.role-selector::before {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: calc(33.33% - 3.33px);
+    height: calc(100% - 10px);
+    background-color: #5a4a88;
+    border-radius: 55px;
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    z-index: 1;
+}
+
+/* MOUVEMENT DU SÉLECTEUR */
+.role-selector[data-active="teacher"]::before { 
+    transform: translateX(100%); 
+}
+.role-selector[data-active="admin"]::before { 
+    transform: translateX(200%); 
+}
+
+/* --- CHAMPS DE SAISIE --- */
+.input-field {
+    max-width: 380px;
+    width: 100%;
+    background-color: #2a2343;
+    margin: 10px 0;
+    height: 55px;
+    border-radius: 55px;
+    display: grid;
+    grid-template-columns: 15% 85%;
+    padding: 0 0.4rem;
+}
+
+.input-field i { 
+    text-align: center; 
+    line-height: 55px; 
+    color: #b8a5d1; 
+    font-size: 20px; 
+}
+.input-field input { 
+    background: none; 
+    border: none; 
+    outline: none; 
+    font-weight: 600; 
+    font-size: 1rem; 
+    color: #ece8f2; 
+}
+.input-field input::placeholder { color: #b8a5d1; }
+
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    max-width: 380px;
+    margin: 10px 0;
+    font-size: 0.85rem;
+}
+
+.remember-me { display: flex; align-items: center; gap: 8px; color: #ffffff; cursor: pointer; }
+.forgot-pass { color: #00D9FF; text-decoration: none; transition: 0.3s; }
+.forgot-pass:hover { color: #ffffff; text-decoration: underline; }
+
+.btn {
+    width: 180px;
+    background-color: #5a4a88;
+    border: none;
+    height: 49px;
+    border-radius: 49px;
+    color: #fff;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin: 10px 0;
+    cursor: pointer;
+    transition: 0.5s;
+}
+.btn:hover { background-color: #7e6ea6; }
+
+/* --- PANNEAUX --- */
+.panels-container {
+    position: absolute;
+    height: 100%; width: 100%;
+    top: 0; left: 0;
+    display: grid; grid-template-columns: repeat(2, 1fr);
+}
+
+/* .container devient .login-content */
+.login-content:before {
+    content: ""; 
+    position: absolute;
+    height: 3700px; width: 3700px;
+    top: -10%; right: 48%;
+    transform: translateY(-50%);
+    background-image: linear-gradient(-45deg, #46396a 100%, #46396a 100%);
+    transition: 1.8s ease-in-out;
+    border-radius: 50%; 
+    z-index: 6;
+}
+
+.image { width: 85%; transition: transform 1.1s ease-in-out; transition-delay: 0.4s; }
+.panel { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; z-index: 6; }
+.left-panel { padding: 3rem 12% 2rem 12%; }
+.right-panel { pointer-events: none; padding: 3rem 12% 2rem 12%; }
+
+.panel .content { 
+    color: #ece8f2; 
+    transition: transform 0.9s ease-in-out; 
+    transition-delay: 0.6s; 
+    margin-top: 50px;
+}
+.panel h3 { font-weight: 600; font-size: 1.5rem; margin-bottom: 15px; }
+.panel p { font-size: 0.95rem; padding: 10px 0; margin-bottom: 25px; }
+.btn.transparent { background: none; border: 2px solid #fff; width: 130px; height: 41px; font-weight: 600; font-size: 0.8rem; }
+
+/* --- ANIMATIONS (Mode Inscription) --- */
+.right-panel .image, .right-panel .content { transform: translateX(1100px); }
+
+/* Tous les .container deviennent .login-content */
+.login-content.sign-up-mode:before { transform: translate(100%, -50%); right: 52%; }
+.login-content.sign-up-mode .left-panel .image, .login-content.sign-up-mode .left-panel .content { transform: translateX(-1100px); }
+.login-content.sign-up-mode .signin-signup { left: 25%; }
+.login-content.sign-up-mode form.sign-up-form { opacity: 1; z-index: 2; }
+.login-content.sign-up-mode form.sign-in-form { opacity: 0; z-index: 1; }
+.login-content.sign-up-mode .right-panel .image, .login-content.sign-up-mode .right-panel .content { transform: translateX(0%); }
+.login-content.sign-up-mode .left-panel { pointer-events: none; }
+.login-content.sign-up-mode .right-panel { pointer-events: all; }
+
+.back-home {
+    position: absolute; top: 30px; left: 30px; z-index: 10;
+    text-decoration: none; color: #f0e6ff; font-weight: 500;
+    display: flex; align-items: center; gap: 10px; transition: 0.3s; font-size: 1rem;
+}
+.back-home:hover { color: #00D9FF; transform: translateX(-5px); }
+
+
+/* --- MODAL MOT DE PASSE OUBLIÉ (STYLE UNI TIME) --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(10, 8, 18, 0.85); /* Fond sombre transparent */
+    backdrop-filter: blur(5px); /* Effet de flou moderne */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-box {
+    background-color: #1f1b2e;
+    border: 1px solid #5a4a88;
+    padding: 2.5rem;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 450px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    position: relative;
+    animation: slideUp 0.3s ease;
+}
+
+.modal-box h3 {
+    color: #fff;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.modal-box p {
+    color: #b8a5d1;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+.modal-box .input-field {
+    margin: 0 auto 1.5rem auto; /* Centrer l'input */
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.btn-close {
+    background: transparent;
+    border: 1px solid #b8a5d1;
+    color: #b8a5d1;
+}
+
+.btn-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+
+/* Style pour le sélecteur de filière */
+.select-style {
+    background: none;
+    border: none;
+    outline: none;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #ece8f2;
+    cursor: pointer;
+    width: 100%;
+}
+
+.select-style option {
+    background-color: #1f1b2e; /* Couleur de fond sombre pour le menu */
+    color: white;
+}

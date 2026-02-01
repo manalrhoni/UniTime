@@ -1,0 +1,60 @@
+
+/* Import des styles de notifications avec priorité absolue */
+@import './notifications.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Force l'application à prendre 100% de la hauteur */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden; /* Empêche le défilement horizontal */
+}
+
+/* Style de base pour la police */
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  /*On met le fond sombre ici aussi pour éviter les flashs blancs */
+  background-color: #1A1625; 
+  color: white;
+}
+
+/* --- Personnalisation de la Scrollbar (Chrome, Edge, Safari) --- */
+::-webkit-scrollbar {
+  width: 10px; /* Largeur de la barre */
+}
+
+/* Le fond de la barre (la piste) - MAINTENANT SOMBRE */
+::-webkit-scrollbar-track {
+  background: #1A1625; /* Couleur exacte de ton fond */
+}
+
+/* La partie mobile (le "pouce") - MAINTENANT VIOLET */
+::-webkit-scrollbar-thumb {
+  background: #6B5DD3; /* Ta couleur violette demandée */
+  border-radius: 5px; 
+  /* Astuce : La bordure doit être de la même couleur que le fond (track) pour l'effet arrondi */
+  border: 2px solid #1A1625; 
+}
+
+/* Au survol de la souris */
+::-webkit-scrollbar-thumb:hover {
+  background: #564ab1; /* Un violet un peu plus foncé au survol */
+}
+
+/* --- Pour Firefox (Support partiel) --- */
+* {
+  scrollbar-width: thin;
+  /* Premier : Pouce, Deuxième : Piste */
+  scrollbar-color: #6B5DD3 #1A1625; 
+}
+
+
+/* ========================================================================
+   FIN DU FICHIER - Les notifications sont gérées dans notifications.css
+   ======================================================================== */

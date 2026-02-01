@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # --- Base de Données PostgreSQL ---
+  db:
+    image: postgres:15-alpine
+    container_name: unitime_db
+    restart: always
+    environment:
+      POSTGRES_USER: unitime_user
+      POSTGRES_PASSWORD: unitime_password
+      POSTGRES_DB: unitime_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # --- Backend FastAPI ---
+  backend:
+    build: ./backend
+    container_name: unitime_backend
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://unitime_user:unitime_password@db:5432/unitime_db
+      # URL spéciale pour accéder à Ollama sur votre Windows hôte
+      OLLAMA_URL: http://host.docker.internal:11434
+    volumes:
+      - ./backend/app:/app/app
+
+  # --- Frontend React ---
+  frontend:
+    build: ./frontend
+    container_name: unitime_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app             # <--- LE TUNNEL PRINCIPAL (Votre code -> Docker)
+      - /app/node_modules           # <--- L'EXCEPTION (Ne pas écraser les librairies installées)
+    environment:
+      - WATCHPACK_POLLING=true      # Force la détection
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

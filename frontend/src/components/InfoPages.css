@@ -1,0 +1,154 @@
+/* src/components/InfoPages.css */
+
+/* --- CONTENEUR GLOBAL --- */
+.info-page-container {
+    background-color: #1A1625;
+    color: #E8E5F7;
+    min-height: 100vh;
+    padding: 100px 4% 60px; /* Marges confortables */
+    font-family: 'Segoe UI', 'Inter', sans-serif;
+}
+
+/* En-tête commun (Titre + Bouton Retour) */
+.page-header {
+    margin-bottom: 50px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(107, 93, 211, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff, #00D9FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    color: #a5a0c2;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 10px 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 30px;
+    transition: all 0.3s;
+}
+.back-btn:hover {
+    background: rgba(255,255,255,0.05);
+    color: white;
+    border-color: #00D9FF;
+}
+
+/* --- STYLE SPÉCIFIQUE PAGE SUPPORT (3 COLONNES) --- */
+.support-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 Colonnes de largeur égale */
+    gap: 30px; /* Espace entre les colonnes */
+    width: 100%;
+}
+
+.support-column {
+    background: rgba(30, 27, 46, 0.5); /* Fond semi-transparent */
+    border: 1px solid rgba(107, 93, 211, 0.2);
+    border-radius: 20px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* S'assurer qu'elles ont la même hauteur */
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.support-column:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    border-color: rgba(0, 217, 255, 0.3);
+}
+
+.support-column h2 {
+    color: #00D9FF;
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Éléments à l'intérieur des colonnes */
+.support-item {
+    margin-bottom: 25px;
+}
+
+.support-item h3 {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.support-item p, .support-item li {
+    font-size: 0.95rem;
+    color: #b8a5d1;
+    line-height: 1.6;
+}
+
+.support-item ul {
+    padding-left: 20px;
+    margin-top: 5px;
+}
+
+/* Zone Bouton Contact */
+.contact-area {
+    margin-top: auto; /* Pousse le bouton vers le bas */
+    text-align: center;
+    padding-top: 20px;
+}
+
+.btn-contact-big {
+    background: linear-gradient(135deg, #6B5DD3, #4A3FB8);
+    color: white;
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(107, 93, 211, 0.3);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-contact-big:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 25px rgba(107, 93, 211, 0.5);
+    background: linear-gradient(135deg, #7c6ee6, #5a4ecc);
+}
+
+/* --- STYLE PAGE LÉGALE (CENTRÉ) --- */
+.legal-container {
+    max-width: 900px;
+    margin: 0 auto; /* Centré */
+}
+.legal-container section { margin-bottom: 50px; }
+.legal-container h2 { color: #00D9FF; font-size: 1.8rem; margin-bottom: 20px; }
+.legal-container h3 { color: #fff; margin-top: 25px; margin-bottom: 10px; }
+.legal-container p { color: #cbd5e1; line-height: 1.8; margin-bottom: 15px; text-align: justify; }
+
+/* Responsive Mobile (Passe en 1 colonne) */
+@media (max-width: 1024px) {
+    .support-grid { grid-template-columns: 1fr; }
+    .page-header { flex-direction: column-reverse; gap: 20px; text-align: center; }
+}

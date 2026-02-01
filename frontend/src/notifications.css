@@ -1,0 +1,94 @@
+/* ========================================================================
+   UNI-TIME : CONTRÔLE TOTAL DES NOTIFICATIONS (PALETTE FINALE)
+   Ce fichier gère les Toasts et les Alertes de manière identique.
+   ======================================================================== */
+
+/* --- POSITIONNEMENT --- */
+[data-sonner-toaster] {
+    position: fixed !important;
+    top: 20px !important;
+    left: 40% !important;
+    transform: translateX(-50%) !important;
+    z-index: 2147483647 !important;
+    width: auto !important;
+    max-width: 500px !important;
+    pointer-events: none !important;
+}
+
+/* --- STYLE DE BASE --- */
+[data-sonner-toast], .notification-alert {
+    pointer-events: auto !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+    font-family: 'Inter', sans-serif !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* --- PALETTE DE COULEURS HARMONISÉE --- */
+
+/* SUCCESS & UPDATE (Le Violet UniTime) */
+[data-sonner-toast][data-type="success"], 
+.alert-update {
+    background-color: #6B5DD3 !important;
+    color: #ffffff !important;
+}
+
+/* ERROR (Rouge Doux) */
+[data-sonner-toast][data-type="error"],
+.alert-error {
+    background-color: #E54D2E !important;
+    color: #ffffff !important;
+}
+
+/* WARNING (Orange Ambre) */
+[data-sonner-toast][data-type="warning"],
+.alert-warning {
+    background-color: #F59E0B !important;
+    color: #ffffff !important;
+}
+
+/* --- FIX FINAL DE LA CROIX ET DES ICÔNES --- */
+
+/* On force TOUTES les icônes à être blanches (Supprime le vert/noir) */
+[data-sonner-toast] [data-icon] svg, 
+.notification-alert svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+}
+
+/* Suppression du cercle gris derrière la croix (Bouton Fermer) */
+[data-sonner-toast] [data-close-button] {
+    background: white !important; /* Enlève le rond gris */
+    border: none !important;
+    color: #ffffff !important; /* Force la croix en blanc */
+    opacity: 1 !important;
+    box-shadow: none !important;
+}
+
+/* Force la croix SVG interne à être blanche et nette */
+[data-sonner-toast] [data-close-button] svg {
+    color: black !important;
+    stroke: black !important;
+    width: 14px !important;
+    height: 14px !important;
+}
+
+/* --- TYPOGRAPHIE --- */
+[data-sonner-toast] [data-title], .notification-alert [data-title] {
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    color: #ffffff !important;
+}
+
+[data-sonner-toast] [data-description], .notification-alert [data-description] {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 0.85rem !important;
+}
+
+/* Style du badge de date */
+.badge-date {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}

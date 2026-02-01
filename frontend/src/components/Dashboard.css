@@ -1,0 +1,483 @@
+/* ============================================================================
+   PREMIUM DASHBOARD - CLEAN & POWERFUL
+   ============================================================================
+   Design simple mais impactant :
+   - Background animé vivant
+   - Boutons GROS et visibles
+   - Animations fluides
+   - Pas de confusion
+   ============================================================================ */
+
+/* ============================================================================
+   BASE - BACKGROUND ANIMÉ
+   ============================================================================ */
+
+.dashboard-container {
+  background: #0A0812;
+  color: #FFFFFF;
+  min-height: 100vh;
+  padding: 3rem;
+  font-family: 'Inter', -apple-system, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background qui bouge doucement */
+.dashboard-container::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(107, 93, 211, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 217, 255, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+  animation: bgMove 20s ease-in-out infinite;
+  z-index: 0;
+}
+
+@keyframes bgMove {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(-3%, 3%) rotate(1deg); }
+  66% { transform: translate(3%, -3%) rotate(-1deg); }
+}
+
+/* Particules flottantes */
+.dashboard-container::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: particleFloat 40s linear infinite;
+  z-index: 0;
+  opacity: 0.5;
+}
+
+@keyframes particleFloat {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-60px); }
+}
+
+.dashboard-container > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* ============================================================================
+   TITRES
+   ============================================================================ */
+
+.dashboard-container h1 {
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #FFFFFF 0%, #00D9FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 1rem;
+}
+
+.dashboard-container h3 {
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.dashboard-container .text-muted-foreground {
+  color: #A5A0C2 !important;
+}
+
+/* ============================================================================
+   CARTES
+   ============================================================================ */
+
+.dashboard-container .border, 
+.dashboard-container .card {
+  background: rgba(40, 35, 60, 0.6) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(107, 93, 211, 0.3) !important;
+  border-radius: 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  transition: all 0.3s ease;
+}
+
+.dashboard-container .border:hover,
+.dashboard-container .card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 217, 255, 0.5) !important;
+  box-shadow: 
+    0 12px 48px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(107, 93, 211, 0.2);
+}
+
+/* ============================================================================
+   CHIFFRES
+   ============================================================================ */
+
+.dashboard-container .text-2xl {
+  font-size: 3rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #FFFFFF 0%, #00D9FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 10px rgba(0, 217, 255, 0.3));
+}
+
+/* ============================================================================
+   BOUTONS - GROS ET VISIBLES
+   ============================================================================ */
+
+.dashboard-container button {
+  font-weight: 700;
+  border-radius: 14px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+}
+
+/* BOUTON PRINCIPAL - TRÈS GROS */
+.dashboard-container button:not(.variant-outline):not([role="tab"]):not([variant="destructive"]) {
+  background: linear-gradient(135deg, #6B5DD3 0%, #4A3FB8 100%);
+  color: #FFFFFF;
+  
+  /* TAILLE AUGMENTÉE */
+  padding: 1.5rem 3rem !important;
+  font-size: 1.1rem !important;
+  min-width: 280px;
+  
+  box-shadow: 
+    0 0 40px rgba(107, 93, 211, 0.5),
+    0 8px 24px rgba(107, 93, 211, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+}
+
+.dashboard-container button:not(.variant-outline):not([role="tab"]):not([variant="destructive"]):hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 
+    0 0 60px rgba(107, 93, 211, 0.7),
+    0 12px 32px rgba(107, 93, 211, 0.4);
+}
+
+.dashboard-container button:not(.variant-outline):not([role="tab"]):not([variant="destructive"]):active {
+  transform: translateY(-1px) scale(1.01);
+}
+
+/* BOUTON SECONDAIRE - AUSSI GROS */
+.dashboard-container .variant-outline,
+.dashboard-container button[variant="outline"] {
+  background: rgba(0, 217, 255, 0.08);
+  border: 2px solid rgba(0, 217, 255, 0.5) !important;
+  color: #00D9FF;
+  
+  /* TAILLE AUGMENTÉE */
+  padding: 1.5rem 3rem !important;
+  font-size: 1.1rem !important;
+  min-width: 280px;
+  
+  box-shadow: 
+    0 0 30px rgba(0, 217, 255, 0.2),
+    0 4px 16px rgba(0, 217, 255, 0.15);
+}
+
+.dashboard-container .variant-outline:hover,
+.dashboard-container button[variant="outline"]:hover {
+  background: rgba(0, 217, 255, 0.15);
+  border-color: rgba(0, 217, 255, 0.8) !important;
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 
+    0 0 50px rgba(0, 217, 255, 0.4),
+    0 8px 24px rgba(0, 217, 255, 0.2);
+}
+
+/* Boutons verts (Approuver) */
+.dashboard-container button.bg-green-600 {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  padding: 0.75rem 1.5rem !important;
+  font-size: 0.95rem !important;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.dashboard-container button.bg-green-600:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.4);
+}
+
+/* Boutons rouges (Rejeter) */
+.dashboard-container button[variant="destructive"] {
+  padding: 0.75rem 1.5rem !important;
+  font-size: 0.95rem !important;
+}
+
+/* ============================================================================
+   ONGLETS
+   ============================================================================ */
+
+.dashboard-container [role="tablist"] {
+  background: rgba(20, 17, 30, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(107, 93, 211, 0.3);
+  padding: 6px;
+  border-radius: 14px;
+  display: inline-flex;
+  gap: 4px;
+}
+
+.dashboard-container button[role="tab"] {
+  color: #A5A0C2;
+  padding: 0.75rem 1.5rem !important;
+  font-size: 0.9rem !important;
+  font-weight: 600;
+  border-radius: 10px;
+  background: transparent;
+  min-width: auto !important;
+  transition: all 0.2s ease;
+}
+
+.dashboard-container button[role="tab"]:hover:not([data-state="active"]) {
+  color: #FFFFFF;
+  background: rgba(107, 93, 211, 0.2);
+}
+
+.dashboard-container button[role="tab"][data-state="active"] {
+  background: linear-gradient(135deg, #6B5DD3 0%, #5847C1 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(107, 93, 211, 0.4);
+}
+
+/* ============================================================================
+   BADGES
+   ============================================================================ */
+
+.dashboard-container .badge {
+  border-radius: 10px;
+  padding: 5px 14px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================================================
+   ICÔNES
+   ============================================================================ */
+
+.dashboard-container svg {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transition: transform 0.2s ease;
+}
+
+.dashboard-container button:hover svg {
+  transform: scale(1.1);
+}
+
+/* ============================================================================
+   TABLEAU / GRILLE
+   ============================================================================ */
+
+.dashboard-container .bg-gray-50 {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(107, 93, 211, 0.2) !important;
+  border-radius: 10px;
+  padding: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.dashboard-container .bg-gray-50:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(107, 93, 211, 0.4) !important;
+  transform: translateY(-2px);
+}
+
+.dashboard-container .border-dashed {
+  border-color: rgba(107, 93, 211, 0.25) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* ============================================================================
+   BARRES DE PROGRESSION
+   ============================================================================ */
+
+.dashboard-container .bg-gray-700 {
+  background: rgba(30, 25, 45, 0.8) !important;
+  border: 1px solid rgba(107, 93, 211, 0.15);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-container .bg-blue-500 {
+  background: linear-gradient(90deg, #4F46E5 0%, #818CF8 100%) !important;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+}
+
+/* ============================================================================
+   ALERTES / CONFLITS
+   ============================================================================ */
+
+.dashboard-container .border-red-500\/50 {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  background: rgba(127, 29, 29, 0.4) !important;
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.15);
+}
+
+/* ============================================================================
+   ESPACEMENT
+   ============================================================================ */
+
+.dashboard-container .space-y-6 > * + * {
+  margin-top: 2rem;
+}
+
+.dashboard-container .space-y-4 > * + * {
+  margin-top: 1.5rem;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 1.5rem;
+  }
+  
+  .dashboard-container h1 {
+    font-size: 2rem;
+  }
+  
+  .dashboard-container button:not([role="tab"]) {
+    padding: 1.25rem 2rem !important;
+    font-size: 1rem !important;
+    min-width: 100% !important;
+  }
+}
+
+/* ============================================================================
+   FOCUS (ACCESSIBILITÉ)
+   ============================================================================ */
+
+.dashboard-container button:focus-visible {
+  outline: 2px solid #00D9FF;
+  outline-offset: 3px;
+}
+
+/* ============================================================================
+   AJOUTS POUR ENSEIGNANT & ÉTUDIANT (Formulaires & Cours)
+   ============================================================================ */
+
+/* 1. CHAMPS DE SAISIE (INPUTS & TEXTAREA) - Style Verre */
+.dashboard-container input, 
+.dashboard-container textarea {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border-radius: 12px;
+  padding: 0.8rem;
+  transition: all 0.3s;
+}
+
+.dashboard-container input:focus, 
+.dashboard-container textarea:focus {
+  border-color: #00D9FF !important;
+  outline: none;
+  background: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 0 15px rgba(0, 217, 255, 0.1);
+}
+
+/* 2. LISTES DÉROULANTES (SELECT) */
+.dashboard-container button[role="combobox"] {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #A5A0C2 !important;
+  padding: 0.8rem !important;
+  min-width: 0 !important;
+  font-size: 0.9rem !important;
+  box-shadow: none !important;
+  justify-content: space-between;
+}
+
+.dashboard-container button[role="combobox"]:hover {
+  transform: none !important;
+  border-color: #00D9FF !important;
+  color: white !important;
+}
+
+/* 3. COULEURS DES COURS (TIMETABLE) - Style Néon */
+.dashboard-container .bg-blue-100 {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border: 1px solid rgba(59, 130, 246, 0.5) !important;
+  color: #93c5fd !important;
+}
+.dashboard-container .bg-green-100 {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border: 1px solid rgba(16, 185, 129, 0.5) !important;
+  color: #6ee7b7 !important;
+}
+.dashboard-container .bg-purple-100 {
+  background: rgba(139, 92, 246, 0.15) !important;
+  border: 1px solid rgba(139, 92, 246, 0.5) !important;
+  color: #c4b5fd !important;
+}
+.dashboard-container .bg-red-100 {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border: 1px solid rgba(239, 68, 68, 0.5) !important;
+  color: #fca5a5 !important;
+}
+
+/* 4. NOTIFICATIONS (Student) */
+.dashboard-container .bg-blue-50 {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  color: #60a5fa !important;
+}
+.dashboard-container .bg-orange-50 {
+  background: rgba(249, 115, 22, 0.1) !important;
+  border-color: rgba(249, 115, 22, 0.4) !important;
+  color: #fb923c !important;
+}
+
+
+/* LOGIQUE D'IMPRESSION STRICTE */
+@media print {
+  /* 1. On cache absolument tout ce qui se trouve dans le body */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* 2. On affiche uniquement notre zone cible et ses enfants */
+  #printable-timetable, 
+  #printable-timetable * {
+    visibility: visible !important;
+  }
+
+  /* 3. On force la zone à remonter tout en haut à gauche de la feuille 
+        (pour éviter d'avoir une page blanche au début) */
+  #printable-timetable {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background-color: white !important;
+  }
+
+  /* 4. On cache les éléments UI qui pourraient rester (onglets, sélecteurs) */
+  .print-hidden, 
+  button, 
+  [role="tablist"], 
+  .select-trigger {
+    display: none !important;
+  }
+
+  /* 5. Optimisation des couleurs pour l'imprimante */
+  #printable-timetable * {
+    color: black !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+}
