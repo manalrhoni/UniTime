@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { 
   Calendar, 
   Building2, 
-  Users, 
+  Users,
+  Users2, 
   AlertCircle, 
   CheckCircle, 
   XCircle,
@@ -75,6 +76,9 @@ export function AdminDashboard() {
 
   // État pour les utilisateurs en attente de validation
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+  
+  // État pour TOUS les utilisateurs (actifs + inactifs) - pour le CRUD
+  const [allUsers, setAllUsers] = useState<any[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isManageMode, setIsManageMode] = useState(false);
@@ -84,8 +88,14 @@ export function AdminDashboard() {
 
   // États pour les formulaires de modification (CRUD)
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'teacher' | 'room' | 'group' | 'module' | null>(null);
+  const [modalType, setModalType] = useState<'teacher' | 'room' | 'group' | 'module' | 'user' | null>(null);
   const [currentEntity, setCurrentEntity] = useState<any>({});
+
+  // --- [AJOUTÉ] ÉTATS POUR LA MODALE DE VALIDATION ÉTUDIANT ---
+  const [showValidateModal, setShowValidateModal] = useState(false);
+  const [userToValidate, setUserToValidate] = useState<any>(null);
+  const [finalSemester, setFinalSemester] = useState("S1");
+  const [finalGroupId, setFinalGroupId] = useState("");
 
   const [stats, setStats] = useState({
     rooms_count: 0,
@@ -98,6 +108,7 @@ export function AdminDashboard() {
   // États pour les Notifications Globales
   const [notifTitle, setNotifTitle] = useState("");
   const [notifMsg, setNotifMsg] = useState("");
+  const [notifType, setNotifType] = useState("info");
   const [notifTarget, setNotifTarget] = useState("all");
 
   // [NOUVEAU] États pour la Recherche de Salles
@@ -195,6 +206,10 @@ export function AdminDashboard() {
       const responseUsers = await fetch('http://localhost:8000/admin/users/pending');
       if (responseUsers.ok) setPendingUsers(await responseUsers.json());
 
+      // Récupérer TOUS les utilisateurs (actifs + inactifs) pour le CRUD
+      const responseAllUsers = await fetch('http://localhost:8000/admin/users/all');
+      if (responseAllUsers.ok) setAllUsers(await responseAllUsers.json());
+
     } catch (error) {
       console.error("Erreur de chargement:", error);
       toast.error("Erreur de connexion au serveur backend");
@@ -244,11 +259,32 @@ export function AdminDashboard() {
     } catch (e) { toast.error("Erreur connexion"); }
   };
 
-  const handleValidateUser = async (userId: number, email: string) => {
+  // --- [AJOUTÉ] LOGIQUE DE CONFIRMATION DE VALIDATION ---
+  const handleConfirmValidation = async () => {
+    if (!userToValidate) return;
     try {
-        const response = await fetch(`http://localhost:8000/admin/users/${userId}/validate`, { method: 'PUT' });
-        if(response.ok) { toast.success(`Compte activé pour ${email}`); fetchAllData(); }
-    } catch (e) { toast.error("Erreur validation"); }
+        const response = await fetch(`http://localhost:8000/admin/users/${userToValidate.id}/validate`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                group_id: finalGroupId,
+                semester: finalSemester
+            })
+        });
+        if(response.ok) { 
+            toast.success(`Compte configuré et activé pour ${userToValidate.email}`); 
+            setShowValidateModal(false);
+            fetchAllData(); 
+        }
+    } catch (e) { toast.error("Erreur lors de la validation"); }
+  };
+
+  // Fonction pour ouvrir la nouvelle fenêtre de validation
+  const handleOpenValidateModal = (user: any) => {
+    setUserToValidate(user);
+    setFinalGroupId(user.group_id || "");
+    setFinalSemester("S1");
+    setShowValidateModal(true);
   };
 
   const handleRejectUser = async (userId: number) => {
@@ -332,13 +368,14 @@ export function AdminDashboard() {
             body: JSON.stringify({
                 title: notifTitle,
                 message: notifMsg,
-                type: 'info',
+                type: notifType,
                 target_role: notifTarget
             })
         });
-        toast.success("Notification envoyée à tous !");
+        toast.success("Notification envoyée avec succès !");
         setNotifTitle(""); 
         setNotifMsg("");
+        setNotifType("info");
     } catch (e) {
         toast.error("Erreur lors de l'envoi");
     }
@@ -369,7 +406,8 @@ export function AdminDashboard() {
     // Initialisation complète
     setCurrentEntity(entity || { 
         name: '', capacity: '', building: '', equipment: '', email: '', department: '',
-        hours_cours: 0, hours_td: 0, hours_tp: 0, student_count: 30, type: 'Standard', group_id: "", teacher_id: ""
+        hours_cours: 0, hours_td: 0, hours_tp: 0, student_count: 30, type: 'Standard', group_id: "", teacher_id: "",
+        nom: '', role: 'student', is_active: true, semester: 'S1', department_id: ''
     });
     setIsModalOpen(true);
   };
@@ -409,6 +447,18 @@ export function AdminDashboard() {
             hours_td: parseInt(currentEntity.hours_td || 0),
             hours_tp: parseInt(currentEntity.hours_tp || 0)
         };
+    } else if (modalType === 'user') {
+        url += "users/";
+        body = { 
+            id: currentEntity.id,
+            nom: currentEntity.nom || currentEntity.name,
+            email: currentEntity.email,
+            role: currentEntity.role,
+            group_id: currentEntity.group_id || null,
+            semester: currentEntity.semester || null,
+            department_id: currentEntity.department_id || null,
+            is_active: currentEntity.is_active !== undefined ? currentEntity.is_active : true
+        };
     }
 
     try {
@@ -434,6 +484,7 @@ export function AdminDashboard() {
     if (type === 'room') endpointType = 'rooms';
     if (type === 'group') endpointType = 'groups';
     if (type === 'module') endpointType = 'courses';
+    if (type === 'user') endpointType = 'users';
 
     try {
       const response = await fetch(`http://localhost:8000/admin/${endpointType}/${id}`, { method: 'DELETE' });
@@ -455,7 +506,7 @@ export function AdminDashboard() {
   return (
     <div className="dashboard-container space-y-6 relative">
       
-      {/* --- MODALE CRUD --- */}
+      {/* --- MODALE CRUD (INCHANGÉE) --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <Card className="w-full max-w-2xl bg-slate-900 border-slate-700 shadow-2xl overflow-visible">
@@ -551,11 +602,135 @@ export function AdminDashboard() {
                   </>
               )}
 
+              {modalType === 'user' && (
+                  <>
+                    <div className="space-y-2">
+                        <Label className="text-slate-300">Nom Complet</Label>
+                        <Input value={currentEntity.nom || currentEntity.name || ''} onChange={(e) => setCurrentEntity({...currentEntity, nom: e.target.value, name: e.target.value})} className="bg-slate-800 border-slate-600 text-white h-11" />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-slate-300">Email</Label>
+                        <Input value={currentEntity.email || ''} onChange={(e) => setCurrentEntity({...currentEntity, email: e.target.value})} className="bg-slate-800 border-slate-600 text-white h-11" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label className="text-slate-300">Rôle</Label>
+                            <select className="w-full bg-slate-800 border-slate-600 text-white rounded-md p-3 h-11" value={currentEntity.role || 'student'} onChange={(e) => setCurrentEntity({...currentEntity, role: e.target.value})}>
+                                <option value="student">Étudiant</option>
+                                <option value="enseignant">Enseignant</option>
+                                <option value="admin">Administrateur</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-slate-300">Statut</Label>
+                            <select className="w-full bg-slate-800 border-slate-600 text-white rounded-md p-3 h-11" value={currentEntity.is_active ? 'true' : 'false'} onChange={(e) => setCurrentEntity({...currentEntity, is_active: e.target.value === 'true'})}>
+                                <option value="true">Actif</option>
+                                <option value="false">Inactif</option>
+                            </select>
+                        </div>
+                    </div>
+                    {currentEntity.role === 'student' && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-indigo-400">Filière</Label>
+                                <select className="w-full bg-slate-800 border-slate-600 text-white rounded-md p-3 h-11" value={currentEntity.group_id || ""} onChange={(e) => setCurrentEntity({...currentEntity, group_id: e.target.value})}>
+                                    <option value="">-- Sélectionner --</option>
+                                    {listGroups.map(g => ( <option key={g.id} value={g.name}>{g.name}</option> ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-indigo-400">Semestre</Label>
+                                <select className="w-full bg-slate-800 border-slate-600 text-white rounded-md p-3 h-11" value={currentEntity.semester || "S1"} onChange={(e) => setCurrentEntity({...currentEntity, semester: e.target.value})}>
+                                    {Array.from({length: 10}, (_, i) => `S${i + 1}`).map(sem => (
+                                        <option key={sem} value={sem}>{sem}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                    )}
+                    {currentEntity.role === 'enseignant' && (
+                        <div className="space-y-2">
+                            <Label className="text-slate-300">Département</Label>
+                            <Input value={currentEntity.department_id || ''} onChange={(e) => setCurrentEntity({...currentEntity, department_id: e.target.value})} className="bg-slate-800 border-slate-600 text-white h-11" placeholder="Ex: Informatique" />
+                        </div>
+                    )}
+                  </>
+              )}
+
               <div className="flex flex-row gap-4 pt-8 mt-4 border-t border-slate-800">
                 <Button onClick={handleSaveEntity} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12">
                   <Save className="mr-2 h-5 w-5" /> Sauvegarder
                 </Button>
                 <Button onClick={() => setIsModalOpen(false)} variant="outline" className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800 h-12 font-bold">
+                  Annuler
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* --- [AGRANDIE ET FIXÉE] MODALE DE CONFIGURATION ÉTUDIANT --- */}
+      {showValidateModal && (
+        <div className="fixed inset-0 z-[998] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <Card className="w-full max-w-2xl bg-[#1a1625] border-[#5a4a88] shadow-2xl min-h-[500px] flex flex-col overflow-visible">
+            <CardHeader className="border-b border-white/5 pb-6">
+              <CardTitle className="text-white text-3xl font-extrabold">Configuration du compte étudiant</CardTitle>
+              <CardDescription className="text-[#b8a5d1] text-lg">
+                Confirmez les informations officielles pour <strong>{userToValidate?.nom || userToValidate?.name}</strong>
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="flex-1 space-y-12 pt-10 px-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                {/* FILIÈRE : Liste dynamique de la base de données */}
+                <div className="space-y-4">
+                  <Label className="text-indigo-400 font-black text-sm uppercase tracking-widest">Filière / Groupe Officiel</Label>
+                  <Select value={finalGroupId} onValueChange={setFinalGroupId}>
+                    <SelectTrigger className="bg-[#241e35] text-white border-slate-700 h-16 text-xl focus:ring-indigo-500">
+                      <SelectValue placeholder="Choisir la filière" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1f1b2e] border-slate-700 text-white max-h-[300px] z-[9999]">
+                      {listGroups.map(g => (
+                        <SelectItem key={g.id} value={g.name} className="py-3 text-base hover:bg-indigo-600 focus:bg-indigo-600 cursor-pointer">
+                          {g.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* SEMESTRE : De 1 à 10 */}
+                <div className="space-y-4">
+                  <Label className="text-indigo-400 font-black text-sm uppercase tracking-widest">Semestre Actuel</Label>
+                  <Select value={finalSemester} onValueChange={setFinalSemester}>
+                    <SelectTrigger className="bg-[#241e35] text-white border-slate-700 h-16 text-xl focus:ring-indigo-500">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1f1b2e] border-slate-700 text-white max-h-[300px] z-[9999]">
+                      {Array.from({length: 10}, (_, i) => `S${i + 1}`).map(sem => (
+                        <SelectItem key={sem} value={sem} className="py-4 text-xl hover:bg-indigo-600 focus:bg-indigo-600 cursor-pointer">
+                          {sem}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* ACTIONS - BIEN ALIGNÉES DANS LA DIV */}
+              <div className="flex gap-6 pt-12 border-t border-white/5 mt-auto">
+                <Button 
+                  onClick={handleConfirmValidation} 
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-black h-16 text-xl shadow-xl transition-all hover:scale-[1.02]"
+                >
+                  <CheckCircle className="mr-3 h-6 w-6" /> Confirmer & Activer
+                </Button>
+                <Button 
+                  onClick={() => setShowValidateModal(false)} 
+                  variant="outline" 
+                  className="flex-1 border-[#5a4a88] text-slate-300 hover:bg-white/5 h-16 text-xl"
+                >
                   Annuler
                 </Button>
               </div>
@@ -751,6 +926,47 @@ export function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div><CardTitle>Utilisateurs</CardTitle><CardDescription>Tous les comptes (Étudiants, Profs, Admins)</CardDescription></div>
+              <Button size="sm" className="bg-green-600" onClick={() => openModal('user')}><Plus className="h-4 w-4" /></Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {allUsers.map(u => (
+                  <div key={u.id} className="flex justify-between items-center p-3 border border-slate-800 rounded bg-white/5">
+                    <div className="flex items-center gap-3">
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                        u.role === 'admin' ? 'bg-red-900 text-red-200' : 
+                        u.role === 'enseignant' ? 'bg-purple-900 text-purple-200' : 
+                        'bg-blue-900 text-blue-200'
+                      }`}>
+                        {(u.nom || u.name)?.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">{u.nom || u.name}</span>
+                          <Badge variant={u.is_active ? "default" : "secondary"} className="text-[10px] px-1.5 py-0">
+                            {u.is_active ? "Actif" : "Inactif"}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {u.email} • <span className="uppercase text-[10px] font-semibold">{u.role}</span>
+                          {u.group_id && <span className="text-indigo-400"> • {u.group_id}</span>}
+                          {u.semester && <span className="text-indigo-400"> • {u.semester}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => openModal('user', u)}><Edit className="h-4 w-4 text-blue-400" /></Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteResource('user', u.id)}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       ) : (
         // --- INTERFACE PLANNING ---
@@ -760,7 +976,6 @@ export function AdminDashboard() {
             <TabsTrigger value="users">Utilisateurs ({pendingUsers.length})</TabsTrigger>
             <TabsTrigger value="requests">Demandes ({roomRequests.length})</TabsTrigger>
             <TabsTrigger value="stats">Statistiques d'occupation</TabsTrigger>
-            {/* [MODIF] Ajout de l'onglet Notifications et Salles Libres */}
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="rooms">Salles Libres</TabsTrigger>
           </TabsList>
@@ -841,13 +1056,14 @@ export function AdminDashboard() {
                                             <div className="font-bold text-white">{user.name || user.nom}</div>
                                             <div className="text-sm text-slate-400">
                                                 {user.email} • <span className="uppercase text-xs font-semibold">{user.role}</span>
-                                                {/* 👇 AJOUT : Affichage de la filière si choisie à l'inscription */}
+                                                {/* Affichage de la filière si choisie à l'inscription */}
                                                 {user.group_id && <Badge variant="outline" className="ml-2 border-indigo-500 text-indigo-400">{user.group_id}</Badge>}
                                             </div>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
-                                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleValidateUser(user.id, user.email)}>
+                                        {/* 👇 MODIFIÉ : APPEL DE LA FENETRE DE CONFIGURATION 👇 */}
+                                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleOpenValidateModal(user)}>
                                             <CheckCircle className="mr-2 h-4 w-4" /> Activer
                                         </Button>
                                         <Button size="sm" variant="destructive" onClick={() => handleRejectUser(user.id)}>
@@ -879,18 +1095,9 @@ export function AdminDashboard() {
                             <div className="space-y-1">
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-white text-lg">{request.teacherName}</span>
-                                <Badge variant={request.status === 'pending' ? 'secondary' : request.status === 'approved' ? 'default' : 'destructive'}>
-                                  {request.status === 'pending' ? 'En attente' : request.status === 'approved' ? 'Approuvée' : 'Rejetée'}
-                                </Badge>
-                                {/* Affichage de la filière pour le rattrapage */}
+                                <Badge variant={request.status === 'pending' ? 'secondary' : 'default'}>{request.status}</Badge>
                                 {request.groupId && <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Groupe: {request.groupId}</Badge>}
                               </div>
-                              {/* Affichage du module concerné */}
-                              {request.courseId && (
-                                <p className="text-xs text-indigo-400 flex items-center gap-1">
-                                  <BookOpen className="h-3 w-3" /> Module : {listCourses.find(c => c.id === request.courseId)?.name || "N/A"}
-                                </p>
-                              )}
                               <p className="text-sm text-slate-400 italic">Motif: {request.reason}</p>
                             </div>
                           </div>
@@ -926,7 +1133,7 @@ export function AdminDashboard() {
             <RoomOccupancyChart data={occupancy} />
             <Card className="print:border-none print:shadow-none bg-slate-950/50 border-slate-800">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-indigo-400" /> Taux d'occupation en temps réel</CardTitle>
+                <CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5 text-indigo-400" /> Taux d'occupation</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -946,112 +1153,179 @@ export function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* Contenu de l'onglet Notifications (Point 3) */}
           <TabsContent value="notifications">
             <Card className="bg-slate-900 border-slate-700">
-                <CardHeader><CardTitle>Envoyer une alerte (Panne, Férié...)</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Bell className="w-6 h-6 text-orange-400" />
+                        Alerte Institutionnelle
+                    </CardTitle>
+                    <CardDescription>Envoyer une notification à tous les utilisateurs ou à un groupe spécifique</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                     <div className="space-y-2">
-                        <Label className="text-slate-300">Titre de l'alerte</Label>
+                        <Label className="text-slate-300 font-semibold">Titre de la notification</Label>
                         <Input 
-                            placeholder="Ex: Panne Électricité - Salle 12" 
+                            placeholder="Ex: Panne Électricité - Cours Annulés" 
                             value={notifTitle} 
                             onChange={e => setNotifTitle(e.target.value)} 
-                            className="bg-slate-800 border-slate-600 text-white"
+                            className="bg-slate-800 text-white border-slate-700 h-12"
                         />
                     </div>
+                    
                     <div className="space-y-2">
-                        <Label className="text-slate-300">Message détaillé</Label>
-                        <Input 
-                            placeholder="Le cours est déplacé en Amphi B..." 
+                        <Label className="text-slate-300 font-semibold">Message détaillé</Label>
+                        <textarea 
+                            placeholder="Détails de l'alerte..." 
                             value={notifMsg} 
                             onChange={e => setNotifMsg(e.target.value)} 
-                            className="bg-slate-800 border-slate-600 text-white"
+                            className="w-full bg-slate-800 text-white border border-slate-700 rounded-md p-3 min-h-[120px] focus:outline-none focus:border-indigo-500"
                         />
                     </div>
-                    <div className="space-y-2">
-                        <Label className="text-slate-300">Destinataires</Label>
-                        <Select onValueChange={setNotifTarget} defaultValue="all">
-                            <SelectTrigger className="bg-slate-800 border-slate-600 text-white"><SelectValue placeholder="Cible" /></SelectTrigger>
-                            <SelectContent className="bg-slate-800 border-slate-600 text-white">
-                                <SelectItem value="all">Tout le monde</SelectItem>
-                                <SelectItem value="student">Étudiants seulement</SelectItem>
-                                <SelectItem value="teacher">Profs seulement</SelectItem>
-                            </SelectContent>
-                        </Select>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label className="text-slate-300 font-semibold">Type de notification</Label>
+                            <select 
+                                className="w-full bg-slate-800 border border-slate-700 text-white rounded-md p-3 h-12 focus:outline-none focus:border-indigo-500"
+                                value={notifType}
+                                onChange={e => setNotifType(e.target.value)}
+                            >
+                                <option value="info">ℹ️ Information</option>
+                                <option value="warning">⚠️ Attention</option>
+                                <option value="alert">🚨 Alerte Urgente</option>
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label className="text-slate-300 font-semibold">Destinataires</Label>
+                            <select 
+                                className="w-full bg-slate-800 border border-slate-700 text-white rounded-md p-3 h-12 focus:outline-none focus:border-indigo-500"
+                                value={notifTarget}
+                                onChange={e => setNotifTarget(e.target.value)}
+                            >
+                                <option value="all">👥 Tous les utilisateurs</option>
+                                <option value="student">🎓 Étudiants uniquement</option>
+                                <option value="teacher">👨‍🏫 Enseignants uniquement</option>
+                            </select>
+                        </div>
                     </div>
-                    <Button onClick={sendGlobalNotification} className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-lg">
-                        <Bell className="w-5 h-5 mr-2" /> Envoyer Notification Immédiate
+
+                    <Button 
+                        onClick={sendGlobalNotification} 
+                        className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 h-14 text-lg font-bold shadow-lg"
+                    >
+                        <Bell className="w-5 h-5 mr-2" /> Envoyer la Notification
                     </Button>
                 </CardContent>
             </Card>
           </TabsContent>
 
-          {/* [NOUVEAU] Contenu de l'onglet Salles Libres */}
           <TabsContent value="rooms">
             <Card className="bg-slate-900 border-slate-700">
-                <CardHeader><CardTitle>Rechercher une salle libre</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Search className="w-6 h-6 text-cyan-400" />
+                        Rechercher une salle libre
+                    </CardTitle>
+                    <CardDescription>Trouvez rapidement les salles disponibles selon vos critères</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Jour */}
                         <div className="space-y-2">
-                            <Label className="text-slate-300">Jour</Label>
-                            <Select value={searchDay} onValueChange={setSearchDay}>
-                                <SelectTrigger className="bg-slate-800 border-slate-600 text-white"><SelectValue placeholder="Jour" /></SelectTrigger>
-                                <SelectContent className="bg-slate-800 border-slate-600 text-white">
-                                    {daysList.map((day, i) => <SelectItem key={i} value={i.toString()}>{day}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
+                            <Label className="text-slate-300 font-semibold">Jour de la semaine</Label>
+                            <select 
+                                className="w-full bg-slate-800 border border-slate-700 text-white rounded-md p-3 h-12 focus:outline-none focus:border-cyan-500"
+                                value={searchDay}
+                                onChange={e => setSearchDay(e.target.value)}
+                            >
+                                <option value="0">📅 Lundi</option>
+                                <option value="1">📅 Mardi</option>
+                                <option value="2">📅 Mercredi</option>
+                                <option value="3">📅 Jeudi</option>
+                                <option value="4">📅 Vendredi</option>
+                            </select>
                         </div>
+
+                        {/* Capacité minimale */}
                         <div className="space-y-2">
-                            <Label className="text-slate-300">Début</Label>
-                            <Select value={searchStart} onValueChange={setSearchStart}>
-                                <SelectTrigger className="bg-slate-800 border-slate-600 text-white"><SelectValue /></SelectTrigger>
-                                <SelectContent className="bg-slate-800 border-slate-600 text-white">
-                                    <SelectItem value="08:00">08:00</SelectItem>
-                                    <SelectItem value="10:15">10:15</SelectItem>
-                                    <SelectItem value="14:00">14:00</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-slate-300">Fin</Label>
-                            <Select value={searchEnd} onValueChange={setSearchEnd}>
-                                <SelectTrigger className="bg-slate-800 border-slate-600 text-white"><SelectValue /></SelectTrigger>
-                                <SelectContent className="bg-slate-800 border-slate-600 text-white">
-                                    <SelectItem value="10:00">10:00</SelectItem>
-                                    <SelectItem value="12:15">12:15</SelectItem>
-                                    <SelectItem value="16:00">16:00</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-slate-300">Capacité Min.</Label>
+                            <Label className="text-slate-300 font-semibold">Capacité minimale</Label>
                             <Input 
-                                type="number" 
-                                value={searchCapacity} 
-                                onChange={e => setSearchCapacity(e.target.value)} 
-                                className="bg-slate-800 border-slate-600 text-white"
+                                type="number"
+                                placeholder="Ex: 30"
+                                value={searchCapacity}
+                                onChange={e => setSearchCapacity(e.target.value)}
+                                className="bg-slate-800 text-white border-slate-700 h-12"
+                                min="0"
                             />
                         </div>
                     </div>
-                    
-                    <Button onClick={handleSearchRooms} className="w-full bg-indigo-600 hover:bg-indigo-700 h-11">
-                        <Search className="w-4 h-4 mr-2" /> Rechercher Salles Disponibles
+
+                    {/* Plage horaire */}
+                    <div className="space-y-2">
+                        <Label className="text-slate-300 font-semibold">Plage horaire</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-slate-400 text-sm">Heure de début</Label>
+                                <select 
+                                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-md p-3 h-11 focus:outline-none focus:border-cyan-500"
+                                    value={searchStart}
+                                    onChange={e => setSearchStart(e.target.value)}
+                                >
+                                    <option value="08:00">🕐 08:00</option>
+                                    <option value="10:15">🕐 10:15</option>
+                                    <option value="14:00">🕐 14:00</option>
+                                    <option value="16:15">🕐 16:15</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-slate-400 text-sm">Heure de fin</Label>
+                                <select 
+                                    className="w-full bg-slate-800 border border-slate-700 text-white rounded-md p-3 h-11 focus:outline-none focus:border-cyan-500"
+                                    value={searchEnd}
+                                    onChange={e => setSearchEnd(e.target.value)}
+                                >
+                                    <option value="10:00">🕐 10:00</option>
+                                    <option value="12:15">🕐 12:15</option>
+                                    <option value="16:00">🕐 16:00</option>
+                                    <option value="18:15">🕐 18:15</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <Button 
+                        onClick={handleSearchRooms} 
+                        className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 h-14 text-lg font-bold shadow-lg"
+                    >
+                        <Search className="w-5 h-5 mr-2" /> Rechercher les salles disponibles
                     </Button>
 
+                    {/* Résultats de la recherche */}
                     {availableRooms.length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                            {availableRooms.map(room => (
-                                <div key={room.id} className="p-4 border border-slate-700 rounded bg-slate-800/50 flex justify-between items-center">
-                                    <div>
-                                        <h3 className="font-bold text-white">{room.name}</h3>
-                                        <p className="text-xs text-slate-400">{room.capacity} places - {room.type}</p>
+                        <div className="mt-6 space-y-3">
+                            <div className="flex items-center gap-2 text-green-400 font-semibold">
+                                <CheckCircle className="w-5 h-5" />
+                                {availableRooms.length} salle(s) disponible(s)
+                            </div>
+                            <div className="space-y-2">
+                                {availableRooms.map((room: any) => (
+                                    <div key={room.id} className="p-4 bg-slate-800/50 border border-green-500/30 rounded-lg">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <div className="font-bold text-white text-lg">{room.name}</div>
+                                                <div className="text-sm text-slate-400">
+                                                    Capacité: {room.capacity} places
+                                                    {room.type && <span className="ml-3">• Type: {room.type}</span>}
+                                                    {room.equipment && <span className="ml-3">• {room.equipment}</span>}
+                                                </div>
+                                            </div>
+                                            <Badge className="bg-green-600 text-white">Libre</Badge>
+                                        </div>
                                     </div>
-                                    <div className="text-xs px-2 py-1 bg-green-500/20 text-green-400 rounded">
-                                        Libre
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     )}
                 </CardContent>

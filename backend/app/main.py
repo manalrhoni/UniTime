@@ -127,6 +127,11 @@ class NotificationCreate(BaseModel):
     type: str
     target_role: str
 
+# Nouveau schéma pour la validation avec modification
+class UserValidationRequest(BaseModel):
+    group_id: str
+    semester: str
+
 # =====================================================================
 # ENDPOINTS AUTHENTIFICATION & EMAIL
 # =====================================================================
@@ -238,11 +243,16 @@ def get_pending_users(db: Session = Depends(get_db)):
     return db.query(User).filter(User.is_active == False).all()
 
 @app.put("/admin/users/{user_id}/validate")
-async def validate_user(user_id: int, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+async def validate_user(user_id: int, validation_data: UserValidationRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
-    if not user: raise HTTPException(404, "Introuvable")
+    if not user: 
+        raise HTTPException(status_code=404, detail="Introuvable")
     
+    # L'administrateur définit officiellement ces valeurs au moment de l'acceptation
+    user.group_id = validation_data.group_id
+    user.semester = validation_data.semester
     user.is_active = True
+    
     db.commit()
 
     # ENVOI EMAIL : NOTIFICATION DE VALIDATION 
@@ -251,16 +261,18 @@ async def validate_user(user_id: int, background_tasks: BackgroundTasks, db: Ses
         recipients=[user.email],
         body=f"""
         <h3>Félicitations {user.nom} !</h3>
-        <p>Votre compte a été validé par un administrateur.</p>
-        <p>Vous pouvez dès maintenant vous connecter à la plateforme UniTime :</p>
-        <a href="http://localhost:5173/login">Se connecter</a>
+        <p>Votre compte a été validé et configuré par un administrateur.</p>
+        <p><strong>Filière :</strong> {user.group_id}</p>
+        <p><strong>Semestre :</strong> {user.semester}</p>
+        <br>
+        <p>Vous pouvez vous connecter ici : <a href="http://localhost:5173/login">Se connecter</a></p>
         """,
         subtype=MessageType.html
     )
     fm = FastMail(conf)
     background_tasks.add_task(fm.send_message, message)
 
-    return {"message": "Utilisateur validé"}
+    return {"message": "Utilisateur configuré et validé"}
 
 @app.delete("/admin/users/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
@@ -962,3 +974,74 @@ def export_teacher_pdf(teacher_id: int, db: Session = Depends(get_db)):
     filename = f"/tmp/timetable_teacher_{teacher_id}.pdf"
     pdf.output(filename)
     return FileResponse(filename, media_type='application/pdf', filename=f"timetable_teacher_{teacher_id}.pdf")
+
+
+# 1. RÉCUPÉRER TOUS LES UTILISATEURS (actifs + inactifs)
+@app.get("/admin/users/all")
+async def get_all_users(db: Session = Depends(get_db)):
+    """Récupère tous les utilisateurs pour le CRUD admin"""
+    users = db.query(User).all()
+    return users
+
+# 2. CRÉER/MODIFIER UN UTILISATEUR
+@app.post("/admin/users/")
+async def create_or_update_user(user_data: dict, db: Session = Depends(get_db)):
+    """Créer ou modifier un utilisateur"""
+    user_id = user_data.get('id')
+    
+    if user_id:
+        # MODIFICATION
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+        
+        # Mise à jour des champs
+        if 'nom' in user_data:
+            user.nom = user_data['nom']
+        if 'email' in user_data:
+            user.email = user_data['email']
+        if 'role' in user_data:
+            user.role = user_data['role']
+        if 'group_id' in user_data:
+            user.group_id = user_data['group_id']
+        if 'semester' in user_data:
+            user.semester = user_data['semester']
+        if 'department_id' in user_data:
+            user.department_id = user_data['department_id']
+        if 'is_active' in user_data:
+            user.is_active = user_data['is_active']
+            
+    else:
+        # CRÉATION
+        # Vérifier si l'email existe déjà
+        existing = db.query(User).filter(User.email == user_data['email']).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Cet email existe déjà")
+        
+        user = User(
+            nom=user_data['nom'],
+            email=user_data['email'],
+            password_hash=bcrypt.hashpw("password123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),  # Mot de passe par défaut
+            role=user_data.get('role', 'student'),
+            group_id=user_data.get('group_id'),
+            semester=user_data.get('semester'),
+            department_id=user_data.get('department_id'),
+            is_active=user_data.get('is_active', True)
+        )
+        db.add(user)
+    
+    db.commit()
+    db.refresh(user)
+    return {"message": "Utilisateur enregistré avec succès", "user": user}
+
+# 3. SUPPRIMER UN UTILISATEUR
+@app.delete("/admin/users/{user_id}")
+async def delete_user(user_id: int, db: Session = Depends(get_db)):
+    """Supprimer un utilisateur"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+    
+    db.delete(user)
+    db.commit()
+    return {"message": "Utilisateur supprimé avec succès"}
