@@ -31,6 +31,8 @@ export function StudentDashboard({ groupId: propGroupId }: StudentDashboardProps
   const [dbReservations, setDbReservations] = useState<any[]>([]);
   // État pour les indisponibilités des professeurs
   const [dbUnavailabilities, setDbUnavailabilities] = useState<any[]>([]);
+  // 🆕 État pour les notifications globales (admin)
+  const [dbGlobalNotifications, setDbGlobalNotifications] = useState<any[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'group' | 'filiere'>('group');
@@ -91,6 +93,7 @@ export function StudentDashboard({ groupId: propGroupId }: StudentDashboardProps
         const groupsData = await safeFetch('http://localhost:8000/groups/');
         const reservationsData = await safeFetch('http://localhost:8000/reservations/');
         const unavailData = await safeFetch('http://localhost:8000/unavailabilities/');
+        const globalNotifsData = await safeFetch('http://localhost:8000/notifications/'); // 🆕
 
         // 2. Mise à jour des états
         setDbGroups(groupsData);
@@ -99,6 +102,7 @@ export function StudentDashboard({ groupId: propGroupId }: StudentDashboardProps
         setDbRooms(roomsData);
         setDbReservations(reservationsData);
         setDbUnavailabilities(unavailData);
+        setDbGlobalNotifications(globalNotifsData); // 🆕
 
         // 3. Traitement de la Filière (AD, MIP...)
         if (groupsData.length > 0) {
@@ -194,6 +198,16 @@ export function StudentDashboard({ groupId: propGroupId }: StudentDashboardProps
   // --- NOTIFICATIONS (Points 2 & 7) ---
   // On combine les réservations acceptées (rattrapages) et les indisponibilités
   const realNotifications = [
+    // 🆕 NOTIFICATIONS GLOBALES (envoyées par l'admin)
+    ...dbGlobalNotifications
+        .filter(notif => notif.target_role === 'all' || notif.target_role === 'student')
+        .map(notif => ({
+            id: `global-${notif.id}`,
+            type: notif.type === 'warning' ? 'warning' : 'success',
+            title: notif.title,
+            message: notif.message,
+            date: new Date(notif.created_at).toLocaleDateString()
+        })),
     ...dbReservations
         .filter(res => res.status === 'approved' && res.group_id === activeGroupId)
         .map(res => ({
