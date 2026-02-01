@@ -670,6 +670,16 @@ def update_reservation_status(reservation_id: int, status_update: ReservationSta
 def seed_data():
     db = next(get_db())
     try:
+        # Création du groupe avec les bonnes infos
+        existing_group = db.query(Group).filter(Group.name == "AD").first()
+        if not existing_group:
+            db.add(Group(
+                id="AD", 
+                name="AD", 
+                student_count=81, 
+                filiere="LST AD",  
+                semester="S5"      
+            ))
         # 1. Créer l'ADMIN
         admin = db.query(User).filter(User.email == "admin@unitime.ma").first()
         if not admin:
@@ -701,7 +711,8 @@ def seed_data():
                 password_hash="student123", 
                 role="student", 
                 is_active=True,
-                group_id="AD" 
+                group_id="AD",
+                semester="S5" 
             ))
 
         db.commit()
